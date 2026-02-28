@@ -69,28 +69,20 @@ export default function VideoPage() {
     setPlain({ type: 'placeholder', text: 'Loading…' })
     setWithTimestamps({ type: 'placeholder', text: 'Loading…' })
     setLoading(true)
-    Promise.all([
-      fetch('/subtitles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: u, plain_text: true }) }),
-      fetch('/subtitles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: u }) }),
-    ])
-      .then(([r1, r2]) => Promise.all([r1.text(), r2.text(), r1.ok, r2.ok]))
-      .then(([t1, t2, ok1, ok2]) => {
-        if (!ok1) {
-          setPlain({ type: 'error', text: parseError(t1) })
-          setWithTimestamps({ type: 'placeholder', text: '—' })
-          return
-        }
-        if (!ok2) {
-          setPlain({ type: 'success', text: t1 || 'No subtitles found.' })
-          setWithTimestamps({ type: 'error', text: parseError(t2) })
-          return
-        }
-        setPlain({ type: 'success', text: t1 || 'No subtitles found.' })
-        setWithTimestamps({ type: 'success', text: t2 || 'No subtitles found.' })
+    fetch('/subtitles-both', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: u }),
+    })
+      .then((r) => r.ok ? r.json() : r.json().then((j) => Promise.reject(j)))
+      .then((data) => {
+        setPlain({ type: 'success', text: data.plain || 'No subtitles found.' })
+        setWithTimestamps({ type: 'success', text: data.with_timestamps || 'No subtitles found.' })
       })
-      .catch(() => {
-        setPlain({ type: 'error', text: 'Error: cannot reach server' })
-        setWithTimestamps({ type: 'error', text: 'Error: cannot reach server' })
+      .catch((err) => {
+        const msg = Array.isArray(err?.detail) ? err.detail.join(' ') : (err?.detail || parseError(JSON.stringify(err)))
+        setPlain({ type: 'error', text: msg })
+        setWithTimestamps({ type: 'placeholder', text: '—' })
       })
       .finally(() => setLoading(false))
   }, [urlFromQuery])

@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, HttpUrl
 
 from services.grok_summary import chat_with_grok, summarize_text
-from services.subtitles import get_subtitles_from_url, get_video_metadata
+from services.subtitles import get_subtitles_both, get_subtitles_from_url, get_video_metadata
 
 app = FastAPI()
 
@@ -77,29 +77,36 @@ def subtitles(body: LinkRequest):
     """Принимает ссылку на видео. По умолчанию возвращает SRT с таймкодами."""
     try:
         result = get_subtitles_from_url(str(body.url), plain_text=body.plain_text)
-        url_str = str(body.url)
-        # One entry per URL (dedupe, keep newest metadata)
-        _history[:] = [e for e in _history if e.get("url") != url_str]
-        try:
-            meta = get_video_metadata(url_str)
-            _history.append({
-                "url": url_str,
-                "video_id": meta["id"],
-                "title": meta["title"],
-                "thumbnail": meta["thumbnail"],
-            })
-        except Exception:
-            _history.append({
-                "url": url_str,
-                "video_id": "",
-                "title": "Unknown",
-                "thumbnail": "",
-            })
+        _add_to_history(str(body.url))
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Не удалось получить субтитры: {e}")
+        from services.subtitles import _clean_error_message
+        raise HTTPException(status_code=422, detail=_clean_error_message(str(e)))
+
+
+def _add_to_history(url_str: str) -> None:
+    _history[:] = [e for e in _history if e.get("url") != url_str]
+    try:
+        meta = get_video_metadata(url_str)
+        _history.append({"url": url_str, "video_id": meta["id"], "title": meta["title"], "thumbnail": meta["thumbnail"]})
+    except Exception:
+        _history.append({"url": url_str, "video_id": "", "title": "Unknown", "thumbnail": ""})
+
+
+@app.post("/subtitles-both")
+def subtitles_both(body: LinkRequest):
+    """Один запрос к YouTube: возвращает plain и with_timestamps. Меньше шансов 429."""
+    from services.subtitles import _clean_error_message
+    try:
+        plain, with_ts = get_subtitles_both(str(body.url))
+        _add_to_history(str(body.url))
+        return {"plain": plain, "with_timestamps": with_ts}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=_clean_error_message(str(e)))
 
 
 @app.post("/summary", response_class=PlainTextResponse)

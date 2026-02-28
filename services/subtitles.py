@@ -1,8 +1,15 @@
 import re
 import tempfile
+import time
 from pathlib import Path
 
 import yt_dlp
+
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _clean_error_message(msg: str) -> str:
+    return _ANSI_ESCAPE.sub("", str(msg)).strip()
 
 
 # Паттерн строки с таймкодами SRT (00:00:00,000 --> 00:00:02,000)
@@ -59,30 +66,59 @@ def srt_to_plain_text(content: str) -> str:
     return "\n".join(text_parts)
 
 
+def _download_srt(video_url: str, tmpdir: Path, max_retries: int = 3) -> str:
+    """Скачивает SRT в tmpdir. При 429 повторяет с паузой."""
+    outtmpl = str(tmpdir / "%(id)s.%(ext)s")
+    ydl_opts = {
+        "skip_download": True,
+        "writesubtitles": True,
+        "writeautomaticsub": True,
+        "subtitlesformat": "srt",
+        "outtmpl": outtmpl,
+        "quiet": True,
+        "sleep_interval": 1,
+        "sleep_requests": 1,
+    }
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([video_url])
+            srt_files = list(tmpdir.glob("*.srt"))
+            if not srt_files:
+                raise ValueError("Субтитры для этого видео не найдены")
+            return srt_files[0].read_text(encoding="utf-8", errors="replace")
+        except Exception as e:
+            last_error = e
+            err_text = str(e)
+            if "429" in err_text or "Too Many Requests" in err_text:
+                if attempt < max_retries - 1:
+                    time.sleep(5 * (attempt + 1))
+                    continue
+            raise
+    raise last_error or ValueError("Не удалось получить субтитры")
+
+
 def get_subtitles_from_url(video_url: str, *, plain_text: bool = False) -> str:
     """
     Извлекает субтитры из YouTube (или другого) видео по ссылке с помощью yt-dlp.
     По умолчанию возвращает SRT с таймкодами; при plain_text=True — только текст.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        outtmpl = str(Path(tmpdir) / "%(id)s.%(ext)s")
-        ydl_opts = {
-            "skip_download": True,
-            "writesubtitles": True,
-            "writeautomaticsub": True,
-            "subtitlesformat": "srt",
-            "outtmpl": outtmpl,
-            "quiet": True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([video_url])
-        srt_files = list(Path(tmpdir).glob("*.srt"))
-        if not srt_files:
-            raise ValueError("Субтитры для этого видео не найдены")
-        content = srt_files[0].read_text(encoding="utf-8", errors="replace")
+        content = _download_srt(video_url, Path(tmpdir))
     if plain_text:
         return srt_to_plain_text(content)
     return srt_to_simple(content)
+
+
+def get_subtitles_both(video_url: str) -> tuple[str, str]:
+    """
+    Один запрос к YouTube: возвращает (plain_text, with_timestamps).
+    Снижает риск 429 по сравнению с двумя отдельными вызовами.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        content = _download_srt(video_url, Path(tmpdir))
+    return srt_to_plain_text(content), srt_to_simple(content)
 
 
 def get_video_metadata(video_url: str) -> dict:
