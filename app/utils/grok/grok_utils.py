@@ -1,37 +1,29 @@
-import os
 import httpx
+
+from app.core import constants
 from app.core.config import settings
 
 
-XAI_BASE = "https://api.x.ai/v1"
-
-SYSTEM_PROMPT = "You are a helpful assistant. Summarize the following video subtitles concisely in the same language as the subtitles. Output only the summary, no preamble."
-
-
 async def summarize_text(text: str, *, model: str | None = None) -> str:
-    """
-    Send text to Grok API and return the summary.
-    Raises ValueError if XAI_API_KEY is missing or API returns an error.
-    """
     if not settings.XAI_API_KEY:
         raise ValueError("XAI_API_KEY is not set")
 
-    text = (text or "").strip()
+    text = str(text or "").strip()
     if not text:
         raise ValueError("Text to summarize is empty")
 
     payload = {
         "model": model or settings.XAI_MODEL,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": constants.SYSTEM_PROMPT},
             {"role": "user", "content": text},
         ],
         "stream": False,
     }
 
-    with httpx.Client(timeout=120.0) as client:
-        resp = client.post(
-            f"{XAI_BASE}/chat/completions",
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(
+            f"{constants.XAI_BASE}/chat/completions",
             headers={
                 "Authorization": f"Bearer {settings.XAI_API_KEY}",
                 "Content-Type": "application/json",
@@ -52,28 +44,23 @@ async def summarize_text(text: str, *, model: str | None = None) -> str:
     choices = data.get("choices") or []
     if not choices:
         raise ValueError("Grok API returned no choices")
-
     content = (choices[0].get("message") or {}).get("content") or ""
     return content.strip()
 
 
-async def chat_with_grok(subtitles_text: str, messages: list[dict], *, model: str | None = None) -> str:
-    """
-    Chat with Grok in context of video subtitles.
-    messages: list of {"role": "user"|"assistant", "content": str}.
-    Returns the assistant reply.
-    """
+async def chat_with_grok(
+    subtitles_text: str, messages: list[dict], *, model: str | None = None
+) -> str:
     if not settings.XAI_API_KEY:
-        raise ValueError("XAI_API_KEY is not set")
+        raise ValueError("XAI_API_KEY in not set")
 
     subtitles_text = (subtitles_text or "").strip()
     system_content = (
-        "You are a helpful assistant. The user is asking about a video. Below are the video subtitles. "
-        "Answer questions, summarize, or discuss the content based on these subtitles. Use the same language as the user.\n\n"
-        "Subtitles:\n" + (subtitles_text[:50000] if subtitles_text else "(no subtitles)")
+        constants.SYSTEM_PROMPT + (subtitles_text[:50000] if subtitles_text else "(no subtitles)")
     )
 
     api_messages = [{"role": "system", "content": system_content}]
+
     for m in messages:
         role = (m.get("role") or "").strip().lower()
         if role not in ("user", "assistant"):
@@ -91,9 +78,9 @@ async def chat_with_grok(subtitles_text: str, messages: list[dict], *, model: st
         "stream": False,
     }
 
-    with httpx.Client(timeout=120.0) as client:
-        resp = client.post(
-            f"{XAI_BASE}/chat/completions",
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(
+            f"{constants.XAI_BASE}/chat/completions",
             headers={
                 "Authorization": f"Bearer {settings.XAI_API_KEY}",
                 "Content-Type": "application/json",

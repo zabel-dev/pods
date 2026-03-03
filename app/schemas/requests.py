@@ -7,14 +7,14 @@ class LinkRequest(BaseModel):
 
 
 class SummaryRequest(BaseModel):
-    text: str
+    text: str = "Это видео про собак. Я люблю собак. Да!"
 
 
 class ChatMessage(BaseModel):
-    role: str  # "user" | "assistant"
-    content: str
+    role: str = "user"
+    content: str = "О чём это видео?"
 
 
 class ChatRequest(BaseModel):
-    subtitles_text: str
+    subtitles_text: str = "Это видео про собак. Я люблю собак. Да!"
     messages: list[ChatMessage]

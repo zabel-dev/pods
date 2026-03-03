@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     DATABASE_URL: str | None = None
     XAI_API_KEY: str
+    XAI_MODEL: str
     DEBUG: bool = False
 
     model_config = SettingsConfigDict(

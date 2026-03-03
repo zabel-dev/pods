@@ -4,7 +4,7 @@ from app.utils.youtube.yt_dlp_utils.metadata import get_video_metadata
 from app.utils.youtube.yt_dlp_utils.parsers import _clean_error_message
 from app.utils.youtube.yt_dlp_utils.subtitles import get_subtitles_from_url, get_subtitles_both
 from app.utils.history import _history, _add_to_history
-from app.utils.youtube.grok.summary import summarize_text, chat_with_grok
+from app.utils.grok.grok_utils import summarize_text, chat_with_grok
 from app.schemas.requests import LinkRequest, SummaryRequest, ChatRequest
 
 
@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/history")
 def history():
-    return list[dict](reversed[dict](_history))
+    return list(reversed(_history))
 
 
 @router.get("/video-info")
@@ -26,12 +26,12 @@ async def video_info(url: str = "https://www.youtube.com/watch?v=9fd5iBK6wsE"):
         return {"thumbnail": meta["thumbnail"], "title": meta["title"]}
     
     except ValueError as e:
-        raise HTTPException(status_code=404, details=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     
 
-@router.post("/subtitiles", response_class=PlainTextResponse)
+@router.post("/subtitles", response_class=PlainTextResponse)
 async def subtitles(body: LinkRequest):
     try:
         result = await get_subtitles_from_url(str(body.url), plain_text=body.plain_text)
