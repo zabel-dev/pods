@@ -2,59 +2,40 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from app.utils.youtube.yt_dlp_utils.metadata import get_video_metadata
 from app.utils.youtube.yt_dlp_utils.parsers import _clean_error_message
-from app.utils.youtube.yt_dlp_utils.subtitles import get_subtitles_from_url, get_subtitles_both
+from app.utils.youtube.yt_dlp_utils.subtitles import get_subtitles
 from app.utils.history import _history, _add_to_history
 from app.utils.grok.grok_utils import summarize_text, chat_with_grok
-from app.schemas.requests import LinkRequest, SummaryRequest, ChatRequest
+from app.schemas.requests import LinkRequest, SummaryRequest, ChatRequest, VideoCreate
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.db.session import get_db
+from app.db.models.video.youtube import Video
+from app.schemas.requests import VideoRead
+from app.services.video import get_or_add_video_by_url, read_history
+
 
 
 router = APIRouter()
 
 
 @router.get("/history")
-def history():
-    return list(reversed(_history))
+async def history(db: AsyncSession = Depends(get_db)):
+    return await read_history(db)
 
 
-@router.get("/video-info")
-async def video_info(url: str = "https://www.youtube.com/watch?v=9fd5iBK6wsE"):
-    if not url or not url.strip():
-        raise HTTPException(status_code=400, detail="url is required")
-    
+@router.post("/video-info", response_model=VideoRead)
+async def video_info(body: VideoCreate, db: AsyncSession = Depends(get_db)):
     try:
-        meta = await get_video_metadata(url.strip())
-        return {"thumbnail": meta["thumbnail"], "title": meta["title"]}
-    
+        video = await get_or_add_video_by_url(db, str(body.source_url))
+        return video
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     
-
-@router.post("/subtitles", response_class=PlainTextResponse)
-async def subtitles(body: LinkRequest):
-    try:
-        result = await get_subtitles_from_url(str(body.url), plain_text=body.plain_text)
-        await _add_to_history(str(body.url))
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=_clean_error_message(str(e)))
-
     
-@router.post("/subtitles-both")
-async def subtitles_both(body: LinkRequest):
-    try:
-        plain, with_ts = await get_subtitles_both(str(body.url))
-        await _add_to_history(str(body.url))
-        return {"plain": plain, "with_timestamps": with_ts}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=_clean_error_message(str(e)))
-
-
 @router.post("/summary", response_class=PlainTextResponse)
 async def summary(body: SummaryRequest):
     try:
@@ -64,6 +45,7 @@ async def summary(body: SummaryRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Summary failed: {e}")
     
+
 @router.post("/chat")
 async def chat(body: ChatRequest):
     try:

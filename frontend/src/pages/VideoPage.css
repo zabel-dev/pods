@@ -1,0 +1,240 @@
+.video-embed {
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e8eaed;
+  background: #000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.video-embed-iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  vertical-align: top;
+}
+
+.video-embed-title {
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+.back-btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #fff;
+  background: #1a73e8;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.back-btn:hover {
+  background: #1557b0;
+}
+
+.subtitle a {
+  color: #1a73e8;
+}
+
+.subtitle a:hover {
+  text-decoration: underline;
+}
+
+.chat-section {
+  margin-bottom: 1.5rem;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.chat-title {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.chat-messages {
+  min-height: 200px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chat-placeholder {
+  color: #5f6368;
+  font-size: 0.875rem;
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.chat-msg--user {
+  align-self: flex-end;
+  background: #1a73e8;
+  color: #fff;
+}
+
+.chat-msg--assistant {
+  align-self: flex-start;
+  background: #e8eaed;
+  color: #1a1a1a;
+}
+
+.chat-msg--typing .chat-msg-content {
+  padding: 0.25em 0;
+}
+
+.chat-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5f6368;
+  animation: chat-typing-bounce 0.6s ease-in-out infinite both;
+}
+
+.chat-typing-dot:nth-child(1) { animation-delay: 0s; }
+.chat-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.chat-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes chat-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+.chat-msg-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e8eaed;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.625rem 0.875rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+.chat-send {
+  padding: 0.625rem 1.25rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #fff;
+  background: #1a73e8;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.chat-send:hover:not(:disabled) {
+  background: #1557b0;
+}
+
+.chat-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.subtitle-line {
+  margin-bottom: 0.25rem;
+}
+
+.subtitle-timestamp {
+  padding: 0;
+  font: inherit;
+  font-weight: 500;
+  color: #1a73e8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.subtitle-timestamp:hover {
+  color: #1557b0;
+}
+
+.subtitle-line-text {
+  color: inherit;
+}
+
+.result--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.subtitle-loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.subtitle-loading-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  border: 3px solid #e8eaed;
+  border-top-color: #1a73e8;
+  border-radius: 50%;
+  animation: subtitle-spin 0.9s linear infinite;
+}
+
+.subtitle-loading-text {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.subtitle-loading-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #5f6368;
+}
+
+@keyframes subtitle-spin {
+  to { transform: rotate(360deg); }
+}
