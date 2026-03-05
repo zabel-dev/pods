@@ -11,27 +11,12 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     ports:
-      - "5444:5432"
+      - "5433:5432"
 
   adminer:
     image: adminer
     container_name: adminer
     ports:
-      - "8088:8080"
+      - "8080:8080"
     depends_on:
       - postgres
-
-  app:
-    build: .
-    container_name: app
-    depends_on:
-      - postgres
-    ports:
-      # снаружи localhost:8888, внутри uvicorn слушает 8888
-      - "8888:8888"
-    environment:
-      # можно пробросить из .env через ${...}, можно захардкодить
-      XAI_MODEL: ${XAI_MODEL}
-      XAI_API_KEY: ${XAI_API_KEY}
-      # ВНИМАНИЕ: внутри docker‑сети к базе ходим на host=db и порт 5432
-      DATABASE_URL: postgresql+asyncpg://db:pass@db:5432/db
