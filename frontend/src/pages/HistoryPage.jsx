@@ -12,7 +12,14 @@ export default function HistoryPage() {
   useEffect(() => {
     fetch('/api/youtube/history')
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then(setList)
+      .then((data) => {
+        const sorted = [...(Array.isArray(data) ? data : [])].sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at) : new Date(0)
+          const dateB = b.created_at ? new Date(b.created_at) : new Date(0)
+          return dateB - dateA
+        })
+        setList(sorted)
+      })
       .catch(() => setError('Failed to load history'))
       .finally(() => setLoading(false))
   }, [])
@@ -69,7 +76,13 @@ export default function HistoryPage() {
                     <div className="history-card-thumb-placeholder">No preview</div>
                   )}
                 </div>
-                <div className="history-card-title">{item.title || 'Untitled'}</div>
+                <div className="history-card-title" title={item.title || 'Untitled'}>
+                  {(() => {
+                    const raw = item.title || 'Untitled'
+                    const maxLen = 40
+                    return raw.length > maxLen ? raw.slice(0, maxLen).trim() + '…' : raw
+                  })()}
+                </div>
               </Link>
             </li>
           ))}

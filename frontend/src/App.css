@@ -195,7 +195,7 @@ h1 {
 
 .result-toggle {
   display: flex;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .result-toggle button {

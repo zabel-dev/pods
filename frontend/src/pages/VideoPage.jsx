@@ -37,6 +37,41 @@ function parseTimestampLines(text) {
   })
 }
 
+const GROK_TIMESTAMP_RE = /\[(\d{2}:\d{2}:\d{2})-(\d{2}:\d{2}:\d{2})\]/g
+
+function renderChatContent(content, seekTo) {
+  if (!content) return null
+  const parts = []
+  let lastIndex = 0
+  let match
+  GROK_TIMESTAMP_RE.lastIndex = 0
+  while ((match = GROK_TIMESTAMP_RE.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', value: content.slice(lastIndex, match.index), key: `t-${lastIndex}` })
+    }
+    parts.push({ type: 'timestamp', start: match[1], end: match[2], key: `ts-${match.index}` })
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < content.length) {
+    parts.push({ type: 'text', value: content.slice(lastIndex), key: `t-${lastIndex}` })
+  }
+  if (parts.length === 0) return content
+  return parts.map((p) =>
+    p.type === 'text' ? (
+      <span key={p.key}>{p.value}</span>
+    ) : (
+      <button
+        key={p.key}
+        type="button"
+        className="chat-msg-timestamp"
+        onClick={() => seekTo(timestampToSeconds(p.start))}
+      >
+        [{p.start}-{p.end}]
+      </button>
+    )
+  )
+}
+
 export default function VideoPage() {
   const [searchParams] = useSearchParams()
   const urlFromQuery = searchParams.get('url') || ''
@@ -49,6 +84,7 @@ export default function VideoPage() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [videoInfo, setVideoInfo] = useState(null)
+  const [copyFeedback, setCopyFeedback] = useState(false)
   const chatMessagesRef = useRef(null)
   const playerRef = useRef(null)
   const videoId = getYoutubeVideoId(decodeURIComponent(urlFromQuery || ''))
@@ -56,20 +92,8 @@ export default function VideoPage() {
   useEffect(() => {
     if (!urlFromQuery) return
     const u = decodeURIComponent(urlFromQuery)
+    const ac = new AbortController()
     setVideoInfo(null)
-    fetch('/api/youtube/video-info', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_url: u }),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setVideoInfo)
-      .catch(() => setVideoInfo(null))
-  }, [urlFromQuery])
-
-  useEffect(() => {
-    if (!urlFromQuery) return
-    const u = decodeURIComponent(urlFromQuery)
     setPlain({ type: 'placeholder', text: 'Loading…' })
     setWithTimestamps({ type: 'placeholder', text: 'Loading…' })
     setLoading(true)
@@ -77,18 +101,23 @@ export default function VideoPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source_url: u }),
+      signal: ac.signal,
     })
-      .then((r) => r.ok ? r.json() : r.json().then((j) => Promise.reject(j)))
+      .then((r) => (r.ok ? r.json() : r.json().then((j) => Promise.reject(j))))
       .then((data) => {
+        setVideoInfo(data)
         setPlain({ type: 'success', text: data.subtitles || 'No subtitles found.' })
         setWithTimestamps({ type: 'success', text: data.subtitles_ts || 'No subtitles found.' })
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return
+        setVideoInfo(null)
         const msg = Array.isArray(err?.detail) ? err.detail.join(' ') : (err?.detail || parseError(JSON.stringify(err)))
         setPlain({ type: 'error', text: msg })
         setWithTimestamps({ type: 'placeholder', text: '—' })
       })
       .finally(() => setLoading(false))
+    return () => ac.abort()
   }, [urlFromQuery])
 
   const active = showPlain ? plain : withTimestamps
@@ -127,6 +156,16 @@ export default function VideoPage() {
   function seekTo(seconds) {
     try {
       if (playerRef.current && playerRef.current.seekTo) playerRef.current.seekTo(seconds, true)
+    } catch (_) {}
+  }
+
+  async function copyResult() {
+    const text = active.type === 'success' && active.text ? active.text : ''
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyFeedback(true)
+      setTimeout(() => setCopyFeedback(false), 2000)
     } catch (_) {}
   }
 
@@ -203,7 +242,7 @@ export default function VideoPage() {
             )}
             {chatMessages.map((m, i) => (
               <div key={i} className={`chat-msg chat-msg--${m.role}`}>
-                <div className="chat-msg-content">{m.content}</div>
+                <div className="chat-msg-content">{renderChatContent(m.content, seekTo)}</div>
               </div>
             ))}
             {chatLoading && (
@@ -243,21 +282,23 @@ export default function VideoPage() {
           </div>
         ) : (
           <>
-            <div className="result-toggle">
-              <button
-                type="button"
-                className={showPlain ? 'active' : ''}
-                onClick={() => setShowPlain(true)}
-              >
-                Plain text
-              </button>
-              <button
-                type="button"
-                className={!showPlain ? 'active' : ''}
-                onClick={() => setShowPlain(false)}
-              >
-                With timestamps
-              </button>
+            <div className="result-actions">
+              <div className="result-toggle">
+                <button
+                  type="button"
+                  className={showPlain ? 'active' : ''}
+                  onClick={() => setShowPlain(true)}
+                >
+                  Plain text
+                </button>
+                <button
+                  type="button"
+                  className={!showPlain ? 'active' : ''}
+                  onClick={() => setShowPlain(false)}
+                >
+                  With timestamps
+                </button>
+              </div>
             </div>
             <div className={`result ${active.type}`} aria-live="polite">
               {!showPlain && withTimestamps.type === 'success' && withTimestamps.text ? (
@@ -281,6 +322,18 @@ export default function VideoPage() {
                 active.text
               )}
             </div>
+            <button
+              type="button"
+              className="result-copy-btn"
+              onClick={copyResult}
+              disabled={active.type !== 'success' || !active.text}
+              title="Copy current subtitles to clipboard"
+            >
+              <span className="result-copy-text">
+                {copyFeedback ? 'Copied' : 'Copy subtitles'}
+              </span>
+              <span className="result-copy-icon" aria-hidden="true">📋</span>
+            </button>
           </>
         )}
       </div>
