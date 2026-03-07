@@ -10,7 +10,7 @@ export default function HistoryPage() {
   const [url, setUrl] = useState('https://www.youtube.com/watch?v=9fd5iBK6wsE')
 
   useEffect(() => {
-    fetch('/api/youtube/history')
+    fetch('/api/routers/history/history')
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then((data) => {
         const sorted = [...(Array.isArray(data) ? data : [])].sort((a, b) => {
@@ -66,9 +66,16 @@ export default function HistoryPage() {
 
       {!loading && !error && list.length > 0 && (
         <ul className="history-grid">
-          {list.map((item, i) => (
-            <li key={`${item.source_url}-${i}`}>
-              <Link to={`/video?url=${encodeURIComponent(item.source_url)}`} className="history-card">
+          {list.map((item, i) => {
+            const videoUrl =
+              item.canonical_url ||
+              (item.external_id ? `https://www.youtube.com/watch?v=${item.external_id}` : '')
+            return (
+              <li key={item.id || `history-${i}`}>
+                <Link
+                  to={`/video?url=${encodeURIComponent(videoUrl)}`}
+                  className="history-card"
+                >
                 <div className="history-card-thumb">
                   {item.thumbnail_url ? (
                     <img src={item.thumbnail_url} alt="" />
@@ -76,7 +83,10 @@ export default function HistoryPage() {
                     <div className="history-card-thumb-placeholder">No preview</div>
                   )}
                 </div>
-                <div className="history-card-title" title={item.title || 'Untitled'}>
+                <div
+                  className="history-card-title"
+                  title={item.title || 'Untitled'}
+                >
                   {(() => {
                     const raw = item.title || 'Untitled'
                     const maxLen = 40
@@ -85,7 +95,8 @@ export default function HistoryPage() {
                 </div>
               </Link>
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
 

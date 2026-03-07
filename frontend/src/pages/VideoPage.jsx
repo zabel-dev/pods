@@ -37,7 +37,10 @@ function parseTimestampLines(text) {
   })
 }
 
-const GROK_TIMESTAMP_RE = /\[(\d{2}:\d{2}:\d{2})-(\d{2}:\d{2}:\d{2})\]/g
+// Поддерживаем и обычный дефис -, и длинное тире – между таймкодами,
+// чтобы парсить форматы вроде [00:00:01-00:00:10] и [00:00:01–00:00:10]
+const GROK_TIMESTAMP_RE =
+  /\[(\d{2}:\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2}:\d{2})\]/g
 
 function renderChatContent(content, seekTo) {
   if (!content) return null
@@ -97,26 +100,41 @@ export default function VideoPage() {
     setPlain({ type: 'placeholder', text: 'Loading…' })
     setWithTimestamps({ type: 'placeholder', text: 'Loading…' })
     setLoading(true)
-    fetch('/api/youtube/video-info', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_url: u }),
-      signal: ac.signal,
-    })
-      .then((r) => (r.ok ? r.json() : r.json().then((j) => Promise.reject(j))))
-      .then((data) => {
-        setVideoInfo(data)
-        setPlain({ type: 'success', text: data.subtitles || 'No subtitles found.' })
-        setWithTimestamps({ type: 'success', text: data.subtitles_ts || 'No subtitles found.' })
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return
+    ;(async () => {
+      try {
+        const infoRes = await fetch('/api/routers/video/video-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source_url: u }),
+          signal: ac.signal,
+        })
+        const infoData = await infoRes.json().catch(() => ({}))
+        if (!infoRes.ok) throw infoData
+        setVideoInfo(infoData)
+
+        const subsRes = await fetch('/api/routers/video/subtitles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source_url: u }),
+          signal: ac.signal,
+        })
+        const subsData = await subsRes.json().catch(() => ({}))
+        if (!subsRes.ok) throw subsData
+
+        setPlain({ type: 'success', text: subsData.subtitles || 'No subtitles found.' })
+        setWithTimestamps({ type: 'success', text: subsData.subtitles_ts || 'No subtitles found.' })
+      } catch (err) {
+        if (err?.name === 'AbortError') return
         setVideoInfo(null)
-        const msg = Array.isArray(err?.detail) ? err.detail.join(' ') : (err?.detail || parseError(JSON.stringify(err)))
+        const msg = Array.isArray(err?.detail)
+          ? err.detail.join(' ')
+          : (err?.detail || parseError(JSON.stringify(err)))
         setPlain({ type: 'error', text: msg })
         setWithTimestamps({ type: 'placeholder', text: '—' })
-      })
-      .finally(() => setLoading(false))
+      } finally {
+        setLoading(false)
+      }
+    })()
     return () => ac.abort()
   }, [urlFromQuery])
 
@@ -155,7 +173,24 @@ export default function VideoPage() {
 
   function seekTo(seconds) {
     try {
-      if (playerRef.current && playerRef.current.seekTo) playerRef.current.seekTo(seconds, true)
+      const s = Math.max(0, Math.floor(seconds || 0))
+      if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+        playerRef.current.seekTo(s, true)
+        return
+      }
+    } catch (_) {}
+    // Fallback: if the YouTube Iframe API is not available (e.g. file:// or blocked),
+    // try to jump by updating the iframe URL with a start time.
+    try {
+      const iframe = document.getElementById('yt-player')
+      if (iframe && iframe.tagName === 'IFRAME') {
+        const url = new URL(iframe.src, window.location.href)
+        const s = Math.max(0, Math.floor(seconds || 0))
+        url.searchParams.set('start', String(s))
+        url.searchParams.set('t', String(s))
+        url.searchParams.set('enablejsapi', '1')
+        iframe.src = url.toString()
+      }
     } catch (_) {}
   }
 
@@ -178,7 +213,7 @@ export default function VideoPage() {
     setChatInput('')
     setChatLoading(true)
     try {
-      const res = await fetch('/api/youtube/chat', {
+      const res = await fetch('/api/routers/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

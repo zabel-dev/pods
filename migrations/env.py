@@ -6,7 +6,9 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.db.base import Base
-from app.db.models.video.youtube import Video
+from app.db.models.youtube.video import Video, VideoSubtitles
+from app.db.models.user import User
+from app.core.video_request import UserVideoRequest
 
 
 # this is the Alembic Config object, which provides

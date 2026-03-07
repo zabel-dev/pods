@@ -1,6 +1,7 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import UUID3, BaseModel, HttpUrl, Field, field_validator
 from uuid import UUID
 from datetime import datetime
+from app.utils.youtube.yt_dlp_utils.url_parser import extract_youtube_video_id
 
 
 class LinkRequest(BaseModel):
@@ -22,18 +23,38 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
 
 
-class VideoCreate(BaseModel):
-    source_url: HttpUrl = "https://www.youtube.com/watch?v=9fd5iBK6wsE"
+class VideoRequest(BaseModel):
+    source_url: str = Field("https://www.youtube.com/watch?v=9fd5iBK6wsE", min_length=1)
+    @field_validator("source_url")
+    @classmethod
+    def validate_source_url(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("source_url must not be empty")
+        if extract_youtube_video_id(value) is None:
+            raise ValueError("Invalid YouTube video URL")
+        return value
+    @property
+    def external_id(self) -> str:
+        external_id = extract_youtube_video_id(self.source_url)
+        if external_id is None:
+            raise ValueError("Invalid YouTube video URL")
+        return external_id
 
 
 class VideoRead(BaseModel):
     id: UUID
-    source_url: str
+    canonical_url: HttpUrl | None = None
     title: str | None
     thumbnail_url: str | None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
+class VideoSubtitlesRead(BaseModel):
+    video_id: UUID
     subtitles: str | None
     subtitles_ts: str | None
-    created_at: datetime
-
     class Config:
         from_attributes = True

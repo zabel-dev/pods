@@ -1,0 +1,83 @@
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid #e8eaed;
+  padding: 0.4rem 0;
+}
+
+.app-header .app-header-inner {
+  padding: 0.35rem 1.5rem;
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-header-logo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.app-header-logo:hover {
+  color: #1a73e8;
+}
+
+.app-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-header-user {
+  font-size: 0.875rem;
+  color: #5f6368;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header-link {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1a73e8;
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+}
+
+.app-header-link:hover {
+  text-decoration: underline;
+}
+
+.app-header-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #e8eaed;
+  background: #fff;
+  color: #1a1a1a;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.app-header-btn:hover {
+  background: #f1f3f4;
+  border-color: #dadce0;
+}
+
+.app-header-btn-primary {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: #fff;
+}
+
+.app-header-btn-primary:hover {
+  background: #1557b0;
+  border-color: #1557b0;
+}
