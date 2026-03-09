@@ -8,12 +8,12 @@ router = APIRouter()
 
 
 @router.post("/summary", response_class=PlainTextResponse)
-async def summary(body: SummaryRequest):
-    return await summarize_text(body.text or "")
+async def summary(payload: SummaryRequest):
+    return await summarize_text(payload.text or "")
     
 
 @router.post("/chat")
-async def chat(body: ChatRequest):
-    message = [{"role": m.role, "content": m.content or ""} for m in body.messages]
-    content = await chat_with_grok(body.subtitles_text or "", message)
+async def chat(payload: ChatRequest):
+    message = [{"role": m.role, "content": m.content or ""} for m in payload.messages]
+    content = await chat_with_grok(payload.subtitles_text or "", message)
     return {"content": content}

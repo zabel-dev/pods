@@ -2,7 +2,8 @@ from pydantic import UUID3, BaseModel, HttpUrl, Field, field_validator
 from uuid import UUID
 from datetime import datetime
 from app.utils.youtube.yt_dlp_utils.url_parser import extract_youtube_video_id
-
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+import re
 
 class LinkRequest(BaseModel):
     url: HttpUrl = "https://www.youtube.com/watch?v=9fd5iBK6wsE"
@@ -58,3 +59,49 @@ class VideoSubtitlesRead(BaseModel):
     subtitles_ts: str | None
     class Config:
         from_attributes = True
+
+
+class UserRegisterRequest(BaseModel):
+    email: str = Field("user@example.com", min_length=8, max_length=255)
+    password: str = Field("password", min_length=8, max_length=255)
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("email must not be empty")
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value):
+            raise ValueError("Invalid email address")
+        return value
+    class Config:
+        from_attributes = True
+
+
+class UserLoginRequest(BaseModel):
+    email: str = Field("user@example.com", min_length=8, max_length=255)
+    password: str = Field("password", min_length=8, max_length=255)
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("email must not be empty")
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value):
+            raise ValueError("Invalid email address")
+        return value
+
+
+class UserLoginResponse(BaseModel):
+    access_token: str
+    # refresh_token: str
+    class Config:
+        from_attributes = True
+
+
+class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    email: EmailStr
+    is_active: bool
+

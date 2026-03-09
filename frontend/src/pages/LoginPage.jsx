@@ -22,11 +22,13 @@ export default function LoginPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.detail || (typeof data === 'string' ? data : 'Login failed'))
+        const msg = Array.isArray(data.detail)
+          ? data.detail.map((d) => d.msg || d).join(' ')
+          : (data.detail ?? (typeof data === 'string' ? data : 'Login failed'))
+        setError(msg)
         return
       }
-      const user = data.user || { email: data.email || email.trim() }
-      setUser(user)
+      setUser({ email: email.trim(), access_token: data.access_token })
       navigate('/', { replace: true })
     } catch (err) {
       setError(err.message || 'Could not reach server')

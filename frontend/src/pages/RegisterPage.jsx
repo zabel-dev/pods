@@ -17,8 +17,8 @@ export default function RegisterPage() {
       setError('Passwords do not match')
       return
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
     setLoading(true)
@@ -30,7 +30,10 @@ export default function RegisterPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.detail || (typeof data === 'string' ? data : 'Registration failed'))
+        const msg = Array.isArray(data.detail)
+          ? data.detail.map((d) => d.msg || d).join(' ')
+          : (data.detail ?? (typeof data === 'string' ? data : 'Registration failed'))
+        setError(msg)
         return
       }
       navigate('/login', { replace: true })
@@ -64,9 +67,9 @@ export default function RegisterPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder="At least 8 characters"
             required
-            minLength={6}
+            minLength={8}
           />
           <label htmlFor="reg-confirm">Confirm password</label>
           <input

@@ -10,7 +10,7 @@ export default function HistoryPage() {
   const [url, setUrl] = useState('https://www.youtube.com/watch?v=9fd5iBK6wsE')
 
   useEffect(() => {
-    fetch('/api/routers/history/history')
+    fetch('/api/history/history')
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then((data) => {
         const sorted = [...(Array.isArray(data) ? data : [])].sort((a, b) => {

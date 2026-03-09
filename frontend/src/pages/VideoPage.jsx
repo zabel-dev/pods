@@ -102,7 +102,7 @@ export default function VideoPage() {
     setLoading(true)
     ;(async () => {
       try {
-        const infoRes = await fetch('/api/routers/video/video-info', {
+        const infoRes = await fetch('/api/video/video-info', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source_url: u }),
@@ -112,7 +112,7 @@ export default function VideoPage() {
         if (!infoRes.ok) throw infoData
         setVideoInfo(infoData)
 
-        const subsRes = await fetch('/api/routers/video/subtitles', {
+        const subsRes = await fetch('/api/video/subtitles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source_url: u }),
@@ -213,7 +213,7 @@ export default function VideoPage() {
     setChatInput('')
     setChatLoading(true)
     try {
-      const res = await fetch('/api/routers/ai/chat', {
+      const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
