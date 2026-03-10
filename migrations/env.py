@@ -7,6 +7,7 @@ from alembic import context
 
 from app.db.base import Base
 from app.db.models.youtube.video import Video, VideoSubtitles
+from app.db.models.youtube.video_history import VideoHistory
 from app.db.models.user import User
 from app.core.video_request import UserVideoRequest
 

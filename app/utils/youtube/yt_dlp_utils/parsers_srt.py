@@ -7,10 +7,10 @@ _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 SRT_TIMESTAMP = re.compile(r"^(\d{2}:\d{2}:\d{2})[,.]\d{3}\s*-->\s*(\d{2}:\d{2}:\d{2})[,.]\d{3}")
 
 
-def _clean_error_message(msg: str) -> str:
+def clean_ansi_escape_sequences(msg: str) -> str:
     return _ANSI_ESCAPE.sub("", str(msg)).strip()
 
-def srt_to_simple(content: str) -> str:
+def parse_srt_to_simple_timed(content: str) -> str:
     lines = content.strip().replace("\r\n", "\n").split("\n")
     output: list[str] = []
     i = 0
@@ -39,7 +39,7 @@ def srt_to_simple(content: str) -> str:
     return "\n".join(output)
 
 
-def srt_to_plain_text(content: str) -> str:
+def parse_srt_to_plain_text(content: str) -> str:
     lines = content.strip().replace("\r\n", "\n").split("\n")
     text_parts: list[str] = []
     for line in lines:

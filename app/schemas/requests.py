@@ -1,7 +1,7 @@
 from pydantic import UUID3, BaseModel, HttpUrl, Field, field_validator
 from uuid import UUID
 from datetime import datetime
-from app.utils.youtube.yt_dlp_utils.url_parser import extract_youtube_video_id
+from app.utils.youtube.yt_dlp_utils.parser_url import extract_youtube_video_id
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 import re
 

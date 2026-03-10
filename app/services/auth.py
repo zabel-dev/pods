@@ -3,10 +3,6 @@ from sqlalchemy import select, select
 from sqlalchemy.orm import selectinload
 
 from app.db.models.youtube.video import Video, VideoSubtitles
-from app.utils.youtube.yt_dlp_utils.metadata import get_video_metadata
-from app.utils.youtube.yt_dlp_utils.subtitles import get_subtitles
-from app.core.exceptions import NotFoundError, ExternalServiceError
-from app.utils.youtube.yt_dlp_utils.parsers import _clean_error_message
 from app.repositories.auth import UserRepository
 from app.core.security import hash_password
 from app.core.exceptions import UserAlreadyExistsError, InvalidCredentialsError

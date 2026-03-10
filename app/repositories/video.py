@@ -4,28 +4,52 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.db.models.youtube.video import Video
 from app.db.models.youtube.video import VideoSubtitles
-from app.utils.youtube.yt_dlp_utils.metadata import get_video_metadata
-from app.utils.youtube.yt_dlp_utils.parsers import _clean_error_message
-from app.core.exceptions import NotFoundError, ExternalServiceError
-from app.utils.youtube.yt_dlp_utils.subtitles import get_subtitles
-from uuid import UUID
 from typing import Sequence
-
 from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from app.db.models.youtube.video_history import VideoHistory
-from app.db.models.youtube.video import Video
-
 
 
 class VideoRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_user_id(self, user_id: UUID) -> list[Video]:
-        stmt = select(Video).where(Video.user_id == user_id)
+    async def add_history_note(self, user_id: UUID | None, video_id: UUID) -> VideoHistory:
+        if user_id:
+            stmt = (
+                select(VideoHistory)
+                .where(
+                    VideoHistory.user_id == user_id,
+                    VideoHistory.video_id == video_id,
+                )
+            )
+            note = await self.session.execute(stmt)
+            history_note = note.scalar_one_or_none()
+            if history_note:
+                return history_note
+        history_note = VideoHistory(
+            user_id=user_id,
+            video_id=video_id,
+        )
+        self.session.add(history_note)
+        await self.session.commit()
+        await self.session.refresh(history_note)    
+        return history_note
+
+    async def get_private_history_by_user_id(self, user_id: UUID | None) -> list[Video]:
+        stmt = (
+            select(VideoHistory)
+            .where(VideoHistory.user_id == user_id)
+            .limit(20)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+    
+    async def get_public_history(self) -> list[Video]:
+        stmt = (
+            select(VideoHistory)
+            .where(VideoHistory.user_id == None)
+            .limit(20)
+        )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
     

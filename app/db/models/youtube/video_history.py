@@ -15,7 +15,7 @@ class VideoHistory(Base):
       user_id: Mapped[uuid.UUID] = mapped_column(
           UUID(as_uuid=True),
           ForeignKey("users.id", ondelete="CASCADE"),
-          nullable=False,
+          nullable=True,
       )
       video_id: Mapped[uuid.UUID] = mapped_column(
           UUID(as_uuid=True),
