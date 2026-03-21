@@ -37,21 +37,25 @@ class VideoRepository:
 
     async def get_private_history_by_user_id(self, user_id: UUID | None) -> list[Video]:
         stmt = (
-            select(VideoHistory)
+            select(Video)
+            .join(VideoHistory, Video.id == VideoHistory.video_id)
             .where(VideoHistory.user_id == user_id)
+            .order_by(VideoHistory.created_at.desc())
             .limit(20)
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
-    
+        return list(result.unique().scalars().all())
+
     async def get_public_history(self) -> list[Video]:
         stmt = (
-            select(VideoHistory)
-            .where(VideoHistory.user_id == None)
+            select(Video)
+            .join(VideoHistory, Video.id == VideoHistory.video_id)
+            .where(VideoHistory.user_id.is_(None))
+            .order_by(VideoHistory.created_at.desc())
             .limit(20)
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.unique().scalars().all())
     
     async def get_video_by_external_id(self, external_id: str) -> Video | None:
         stmt = (

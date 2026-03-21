@@ -10,6 +10,7 @@ from app.db.models.youtube.video import Video, VideoSubtitles
 from app.db.models.youtube.video_history import VideoHistory
 from app.db.models.user import User
 from app.core.video_request import UserVideoRequest
+from app.db.models.youtube.video_chat_message import VideoChatMessage
 
 
 # this is the Alembic Config object, which provides

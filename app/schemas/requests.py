@@ -22,6 +22,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     subtitles_text: str = "Это видео про собак. Я люблю собак. Да!"
     messages: list[ChatMessage]
+    video_id: UUID | None = None
 
 
 class VideoRequest(BaseModel):

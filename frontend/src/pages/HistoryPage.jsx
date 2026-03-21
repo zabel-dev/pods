@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import './HistoryPage.css'
+
+function getAuthHeaders(user) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (user?.access_token) {
+    headers.Authorization = `Bearer ${user.access_token}`
+  }
+  return headers
+}
 
 export default function HistoryPage() {
   const navigate = useNavigate()
+  const { user } = useOutletContext()
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [url, setUrl] = useState('https://www.youtube.com/watch?v=9fd5iBK6wsE')
 
   useEffect(() => {
-    fetch('/api/history/history')
+    fetch('/api/history/', { headers: getAuthHeaders(user) })
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then((data) => {
         const sorted = [...(Array.isArray(data) ? data : [])].sort((a, b) => {
@@ -22,7 +31,7 @@ export default function HistoryPage() {
       })
       .catch(() => setError('Failed to load history'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [user])
 
   function handleSubmit(e) {
     e.preventDefault()

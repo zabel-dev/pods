@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session
 from app.services.auth import UserService
 from app.services.video import VideoService
+from app.services.chat import ChatService
 from app.utils.youtube.client import YoutubeClient
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
@@ -72,6 +73,11 @@ def get_user_service(session: Annotated[AsyncSession, Depends(get_session)]) -> 
 
 def get_video_service(session: Annotated[AsyncSession, Depends(get_session)]) -> VideoService: 
     return VideoService(session)
+
+
+def get_chat_service(session: Annotated[AsyncSession, Depends(get_session)]) -> ChatService:
+    return ChatService(session)
+
 
 def get_youtube_client(session: Annotated[AsyncSession, Depends(get_session)], external_id: str) -> YoutubeClient:
     return YoutubeClient(session, external_id)

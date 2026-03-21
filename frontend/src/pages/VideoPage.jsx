@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useOutletContext } from 'react-router-dom'
 import './VideoPage.css'
+
+function getAuthHeaders(user) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (user?.access_token) {
+    headers.Authorization = `Bearer ${user.access_token}`
+  }
+  return headers
+}
 
 function parseError(text) {
   try {
@@ -77,6 +85,7 @@ function renderChatContent(content, seekTo) {
 
 export default function VideoPage() {
   const [searchParams] = useSearchParams()
+  const { user } = useOutletContext()
   const urlFromQuery = searchParams.get('url') || ''
 
   const [loading, setLoading] = useState(false)
@@ -104,7 +113,7 @@ export default function VideoPage() {
       try {
         const infoRes = await fetch('/api/video/video-info', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(user),
           body: JSON.stringify({ source_url: u }),
           signal: ac.signal,
         })
@@ -114,7 +123,7 @@ export default function VideoPage() {
 
         const subsRes = await fetch('/api/video/subtitles', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(user),
           body: JSON.stringify({ source_url: u }),
           signal: ac.signal,
         })
@@ -136,7 +145,22 @@ export default function VideoPage() {
       }
     })()
     return () => ac.abort()
-  }, [urlFromQuery])
+  }, [urlFromQuery, user])
+
+  useEffect(() => {
+    if (!videoInfo?.id || !user?.access_token) return
+    const ac = new AbortController()
+    fetch(`/api/ai/chat/history?video_id=${encodeURIComponent(videoInfo.id)}`, {
+      headers: getAuthHeaders(user),
+      signal: ac.signal,
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setChatMessages(data)
+      })
+      .catch(() => {})
+    return () => ac.abort()
+  }, [videoInfo?.id, user])
 
   const active = showPlain ? plain : withTimestamps
   const showChat = plain.type === 'success' && plain.text
@@ -215,10 +239,11 @@ export default function VideoPage() {
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(user),
         body: JSON.stringify({
           subtitles_text: (withTimestamps.type === 'success' && withTimestamps.text) ? withTimestamps.text : plain.text,
           messages: [...chatMessages, userMsg],
+          ...(videoInfo?.id && user?.access_token ? { video_id: videoInfo.id } : {}),
         }),
       })
       const data = await res.json().catch(() => ({}))
