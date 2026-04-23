@@ -1,20 +1,18 @@
 from typing import Annotated
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import get_session
-from app.services.auth import UserService
-from app.services.video import VideoService
-from app.services.chat import ChatService
-from app.utils.youtube.client import YoutubeClient
-from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
-from jose import JWTError, jwt  # или из `jwt`, если ты используешь его напрямую
-from app.core.config import settings
-from app.db.session import get_session
-from app.db.models.user import User
+from jose import JWTError, jwt
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.db.models.user import User
+from app.db.session import get_session
+from app.services.auth import UserService
+from app.services.chat import ChatService
+from app.services.video import VideoService
+from app.utils.youtube.client import YoutubeClient
 
 
 
