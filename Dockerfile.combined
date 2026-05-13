@@ -1,0 +1,31 @@
+FROM node:20-alpine AS frontend_build
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends nginx gettext-base \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -f /etc/nginx/sites-enabled/default
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY alembic.ini .
+COPY migrations ./migrations
+COPY app ./app
+COPY nginx/combined.conf.template ./nginx/combined.conf.template
+COPY --from=frontend_build /frontend/dist /usr/share/nginx/html
+
+COPY entrypoint.sh .
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
+
+ENV RUN_UNIFIED=1
+
+CMD ["./entrypoint.sh"]

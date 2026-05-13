@@ -26,6 +26,23 @@ services:
     volumes:
       - nginx-logs:/var/log/nginx
 
+  # Built frontend + FastAPI + nginx in one container (API on 127.0.0.1:8000, nginx on $PORT, default 80).
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.combined
+    container_name: web
+    restart: unless-stopped
+    ports:
+      - "3080:80"
+    env_file:
+      - .env
+    environment:
+      PORT: "80"
+      RUN_UNIFIED: "1"
+    depends_on:
+      - postgres
+
   adminer:
     image: adminer
     container_name: adminer

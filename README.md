@@ -104,6 +104,30 @@ Open:
 - Frontend: **http://localhost/**
 - API docs: **http://localhost/api/docs** (proxied to local backend)
 
+## One Docker image: frontend + API + nginx
+
+Use this when you want a **single** container (good for **Render** or a simple local full stack).
+
+- `Dockerfile.combined` builds the Vite app, installs Python deps, runs **nginx** (public port) and **uvicorn** on `127.0.0.1:8000` behind `/api`.
+- `RUN_UNIFIED=1` is set in that image; **entrypoint** waits for Postgres, runs **Alembic**, then starts both processes.
+
+**Local (with Compose Postgres):** in `.env`, point the app at the `postgres` service (Docker network), not `localhost:5433`, for example:
+
+`DATABASE_URL=postgresql+asyncpg://db:pass@postgres:5432/db`
+
+Then:
+
+```bash
+docker compose up -d postgres web
+```
+
+- App + UI: **http://localhost:3080/**  
+- API docs: **http://localhost:3080/api/docs**
+
+The `web` service overrides `PORT` to `80` inside the container (host maps **3080 → 80**) so it does not clash with a `PORT=8000` you might keep in `.env` for local uvicorn.
+
+**Render:** create a **Web Service** with **Docker**, set **Dockerfile Path** to `Dockerfile.combined`. Do **not** set `PORT` yourself (Render injects it); nginx listens on that port. Set the same env vars as for the API-only image (`DATABASE_URL`, secrets, etc.).
+
 ## Monitoring (Prometheus + Grafana + Loki)
 
 Start the stack:
