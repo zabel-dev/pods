@@ -6,6 +6,7 @@ from app.repositories.video import VideoRepository
 from app.core.exceptions import NotFoundError, ExternalServiceError
 from app.utils.youtube.yt_dlp_utils.parsers_srt import clean_ansi_escape_sequences
 from app.utils.youtube.client import YoutubeClient
+from app.utils.youtube.yt_dlp_utils.subtitles import MOCK_SUBTITLES_PLAIN
 from app.db.models.youtube.video_history import VideoHistory
 
 
@@ -54,7 +55,9 @@ class VideoService:
     async def get_or_add_subtitles(self, external_id: str, user_id: UUID | None ) -> VideoSubtitles:
         existing_subtitles = await self.read_subtitles_by_external_id(external_id)
         if existing_subtitles:
-            return existing_subtitles
+            plain = (existing_subtitles.subtitles or "").strip()
+            if plain and plain != MOCK_SUBTITLES_PLAIN:
+                return existing_subtitles
 
         try:
             plain, timed = await self._youtube_client(external_id).get_subtitles()

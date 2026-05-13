@@ -3,8 +3,11 @@ from app.api.routers import  video, history, ai, auth
 
 from app.core.exceptions import AppException
 from app.api.handlers.exceptions import app_exception_handler, http_exception_handler
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 app.add_exception_handler(AppException, app_exception_handler)

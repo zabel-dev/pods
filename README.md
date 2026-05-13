@@ -6,7 +6,7 @@ FastAPI backend + React (Vite) frontend for working with YouTube video subtitles
 
 - **Python** 3.12+
 - **Node.js** 20+ (or current LTS) and npm
-- **Docker** (for PostgreSQL)
+- **Docker** (for PostgreSQL and optional nginx deployment)
 
 ## Quick start
 
@@ -81,6 +81,48 @@ npm run dev
 ```
 
 The Vite dev server proxies `/api` to `http://127.0.0.1:8000`, so keep the backend on port **8000** while developing.
+
+## Run with Docker + Nginx (frontend in Docker, backend local)
+
+This starts:
+
+- `postgres` (DB)
+- `nginx` (serves the built frontend + proxies `/api/*` → your locally running FastAPI; exposed as `:80`)
+
+```bash
+docker compose up -d postgres nginx
+```
+
+Start the backend locally (outside Docker):
+
+```bash
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open:
+
+- Frontend: **http://localhost/**
+- API docs: **http://localhost/api/docs** (proxied to local backend)
+
+## Monitoring (Prometheus + Grafana + Loki)
+
+Start the stack:
+
+```bash
+docker compose up -d prometheus grafana loki promtail
+```
+
+Open:
+
+- Prometheus: **http://localhost:9090**
+- Grafana: **http://localhost:3000** (login `admin` / `admin`)
+- Loki: **http://localhost:3100**
+
+Notes:
+
+- Prometheus scrapes your **local** backend at `http://127.0.0.1:8000/metrics` (exposed as `/metrics`).
+- Grafana is pre-provisioned with **Prometheus** and **Loki** datasources.
+- Loki receives nginx logs via a shared `nginx-logs` volume (nginx access/error logs are enabled in `nginx/nginx.conf`).
 
 ## Branches
 

@@ -1,5 +1,10 @@
+"""YouTube subtitle download and parsing."""
+
 from pathlib import Path
 import tempfile
+
+# Plain text returned when USE_VIDEO_MOCK is on; also used to invalidate stale DB cache.
+MOCK_SUBTITLES_PLAIN = "These are mocked subtitles"
 from app.utils.youtube.yt_dlp_utils.parsers_srt import (
     parse_srt_to_simple_timed,
     parse_srt_to_plain_text,
@@ -7,7 +12,6 @@ from app.utils.youtube.yt_dlp_utils.parsers_srt import (
 )
 from app.core.config import settings
 import time
-from pathlib import Path
 
 import yt_dlp
 from fastapi.concurrency import run_in_threadpool
@@ -72,7 +76,7 @@ async def fetch_srt(video_url: str, tmpdir: Path, max_retries: int = 3) -> str:
 async def fetch_subtitles(external_id: str) -> tuple[str, str]:
     if settings.USE_VIDEO_MOCK:
         return (
-            "These are mocked subtitles",
+            MOCK_SUBTITLES_PLAIN,
             "00:00:00.000 --> 00:00:02.000\nMocked line\n",
         )
     with tempfile.TemporaryDirectory() as tmpdir:

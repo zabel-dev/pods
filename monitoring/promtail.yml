@@ -1,0 +1,24 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # NOTE: Backend is running locally (outside Docker), so promtail can't read its stdout
+  # unless you write logs to a file and mount it into this container.
+  #
+  # This config collects container logs that are reachable via the Docker log files
+  # on Linux. On Docker Desktop for Windows this may not include all logs; it's still
+  # useful for nginx container logs if available.
+  - job_name: nginx
+    static_configs:
+      - targets: ["localhost"]
+        labels:
+          job: nginx
+          __path__: /var/log/nginx/*.log
+
