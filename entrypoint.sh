@@ -5,6 +5,7 @@ echo "Waiting for Postgres..."
 
 until python - << 'EOF'
 import os
+from urllib.parse import urlparse
 
 import psycopg
 
@@ -16,6 +17,13 @@ if raw.startswith("postgresql+asyncpg://"):
     raw = "postgresql://" + raw.removeprefix("postgresql+asyncpg://")
 elif raw.startswith("postgresql+psycopg://"):
     raw = "postgresql://" + raw.removeprefix("postgresql+psycopg://")
+elif raw.startswith("postgres://"):
+    raw = "postgresql://" + raw.removeprefix("postgres://")
+
+host = (urlparse(raw).hostname or "").lower()
+if host.endswith(".render.com") and "sslmode" not in raw.lower():
+    sep = "&" if "?" in raw else "?"
+    raw = f"{raw}{sep}sslmode=require"
 
 try:
     with psycopg.connect(raw, connect_timeout=3):

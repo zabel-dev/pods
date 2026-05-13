@@ -1,5 +1,6 @@
 import os
 from logging.config import fileConfig
+from urllib.parse import urlparse
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -18,7 +19,33 @@ from app.db.models.youtube.video_chat_message import VideoChatMessage
 # access to the values within the .ini file in use.
 config = context.config
 
-database_url_sync = os.getenv("DATABASE_URL_SYNC")
+
+def _alembic_sync_url() -> str | None:
+    """Sync URL for Alembic (psycopg3). Prefer DATABASE_URL_SYNC; else derive from DATABASE_URL."""
+    direct = os.getenv("DATABASE_URL_SYNC")
+    if direct:
+        return direct
+    raw = os.getenv("DATABASE_URL")
+    if not raw:
+        return None
+    if raw.startswith("postgresql+asyncpg://"):
+        u = "postgresql+psycopg://" + raw.removeprefix("postgresql+asyncpg://")
+    elif raw.startswith("postgresql+psycopg://"):
+        u = raw
+    elif raw.startswith("postgresql://"):
+        u = "postgresql+psycopg://" + raw.removeprefix("postgresql://")
+    elif raw.startswith("postgres://"):
+        u = "postgresql+psycopg://" + raw.removeprefix("postgres://")
+    else:
+        u = raw
+    host = (urlparse(u).hostname or "").lower()
+    if host.endswith(".render.com") and "sslmode" not in u.lower():
+        sep = "&" if "?" in u else "?"
+        u = f"{u}{sep}sslmode=require"
+    return u
+
+
+database_url_sync = _alembic_sync_url()
 if database_url_sync:
     config.set_main_option("sqlalchemy.url", database_url_sync)
 
